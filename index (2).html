@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>All Pokémon (Kanto → Paldea)</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 1rem; }
+    h1 { text-align: center; margin-bottom: 1rem; }
+    #pokemon-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
+    .poke-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 0.75rem; text-align: center; }
+    .poke-card img { width: 80px; height: 80px; }
+    .abilities { margin-top: 0.5rem; }
+    .ability { display: inline-block; background: #e0f7fa; margin: 2px; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
+    #loader { text-align: center; margin-top: 1rem; font-size: 1.1rem; }
+  </style>
+</head>
+<body>
+  <h1>Pokémon (Kanto → Paldea) & Their Abilities</h1>
+  <div id="pokemon-container"></div>
+  <div id="loader">Loading...</div>
+
+  <script>
+    const container = document.getElementById('pokemon-container');
+    const loader = document.getElementById('loader');
+
+    const gens = [
+      { start: 1, end: 151 },   // Kanto
+      { start: 152, end: 251 }, // Johto
+      { start: 252, end: 386 }, // Hoenn
+      { start: 387, end: 493 }, // Sinnoh
+      { start: 494, end: 649 }, // Unova
+      { start: 650, end: 721 }, // Kalos
+      { start: 722, end: 809 }, // Alola
+      { start: 810, end: 898 }, // Galar
+      { start: 899, end: 1010 } // Paldea
+    ];
+
+    let total = 0;
+    gens.forEach(g => total += (g.end - g.start + 1));
+    let loaded = 0;
+
+    async function fetchAndRender(id) {
+      try {
+        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}/`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const card = document.createElement('div');
+        card.className = 'poke-card';
+        const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
+        const abilities = data.abilities.map(a => capitalize(a.ability.name)).join('</span> <span class="ability">');
+        card.innerHTML = `
+          <img src="${data.sprites.front_default || ''}" alt="${data.name}">
+          <h3>#${id} ${capitalize(data.name)}</h3>
+          <div class="abilities"><span class="ability">${abilities}</span></div>
+        `;
+        container.appendChild(card);
+      } catch (e) {
+        console.error('Error loading Pokémon', id, e);
+      } finally {
+        loaded++;
+        if (loaded >= total) loader.textContent = 'All Pokémon loaded!';
+        else loader.textContent = `Loading... (${loaded} / ${total})`;
+      }
+    }
+
+    async function run() {
+      for (const gen of gens) {
+        for (let i = gen.start; i <= gen.end; i++) {
+          fetchAndRender(i);
+          // optional slight delay to avoid hitting rate limits
+          await new Promise(r => setTimeout(r, 30));
+        }
+      }
+    }
+
+    run();
+  </script>
+</body>
+</html>
+
